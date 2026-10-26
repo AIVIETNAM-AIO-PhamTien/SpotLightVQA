@@ -1,0 +1,11 @@
+# Shared environment: CPython 3.15.2 (standard build with GIL).
+# Pin direct and transitive dependencies so the team installs the same versions.
+Pillow==13.0.0
+numpy==2.5.4
+opencv-python-headless==5.0.0.93
+pytest==9.1.1
+colorama==0.4.6
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0

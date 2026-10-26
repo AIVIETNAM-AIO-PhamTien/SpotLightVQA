@@ -1,0 +1,17 @@
+.venv/
+.tmp/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.env
+third_party/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/synthetic/*
+!data/synthetic/.gitkeep
+outputs/*
+!outputs/.gitkeep
+.ipynb_checkpoints/
