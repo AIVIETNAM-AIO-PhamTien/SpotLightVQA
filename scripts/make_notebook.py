@@ -59,7 +59,7 @@ backup()"""),
 |---|---|---|---|
 | E0 | legacy | như lần 1 (224, không che logit) | tái hiện con số 97% |
 | E2 | concept | như lần 1 | còn bao nhiêu khi khái niệm test chưa từng thấy |
-| E4 | concept | che logit + 448 + augment màu | công thức cải tiến, chưa có Spotlight loss |
+| E4 | concept | che logit + augment màu (224) | công thức cải tiến, chưa có Spotlight loss |
 | E5 | concept | E4 + Spotlight loss 0.2 | E5 vs E4 chỉ khác đúng Spotlight loss |
 
 Tên run `<split>_f<fold>_<tag>` để bước 6 gom fold."""),
@@ -69,8 +69,8 @@ BS = 32
 EXPERIMENTS = {
     'E0_report1': ('legacy',  ['--image-size', '224', '--no-mask-answers']),
     'E2_report1': ('concept', ['--image-size', '224', '--no-mask-answers']),
-    'E4_hires_aug': ('concept', ['--image-size', '448', '--augment']),
-    'E5_full':    ('concept', ['--image-size', '448', '--augment', '--spotlight-weight', '0.2']),
+    'E4_mask_aug': ('concept', ['--image-size', '224', '--augment']),
+    'E5_full':    ('concept', ['--image-size', '224', '--augment', '--spotlight-weight', '0.2']),
 }
 RUN_ONLY = list(EXPERIMENTS)"""),
 ("code", """for tag in RUN_ONLY:

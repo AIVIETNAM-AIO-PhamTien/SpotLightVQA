@@ -57,7 +57,7 @@ def setup():
     sh([sys.executable, "-c", (
         "from spotlightvqa.audit import load_all\nfrom spotlightvqa.train import ImageCache\n"
         "s, r, _ = load_all('data/raw')\n"
-        "for size in (224, 448): ImageCache([x['image'] for x in s + r], size, 'data/cache')")])
+        "for size in (224,): ImageCache([x['image'] for x in s + r], size, 'data/cache')")])
 
 
 def jobs():
@@ -65,11 +65,10 @@ def jobs():
     out = [("vlm_spotlight", "outputs/vlm/qwen25vl3b_spotlight",
             [py, "-m", "spotlightvqa.vlm", "--data-root", "data/raw", "--method", "spotlight",
              "--variants", "original", "--output", "outputs/vlm/qwen25vl3b_spotlight"])]
-    configs = [  # (tag, split, folds, extra flags); 448 runs use batch 16 x accumulation 2 on T4
-        ("E5_full", "concept", range(5), ["--image-size", "448", "--augment", "--spotlight-weight", "0.2",
-                                          "--batch-size", "16", "--grad-accum", "2"]),
-        ("E4_hires_aug", "concept", range(5), ["--image-size", "448", "--augment",
-                                               "--batch-size", "16", "--grad-accum", "2"]),
+    configs = [  # (tag, split, folds, extra flags); all at 224 / batch 32 like E2, which fits a T4
+        ("E5_full", "concept", range(5), ["--image-size", "224", "--augment", "--spotlight-weight", "0.2",
+                                          "--batch-size", "32"]),
+        ("E4_mask_aug", "concept", range(5), ["--image-size", "224", "--augment", "--batch-size", "32"]),
         ("E2_report1", "concept", range(5), ["--image-size", "224", "--no-mask-answers", "--batch-size", "32"]),
         ("E0_report1", "legacy", [0], ["--image-size", "224", "--no-mask-answers", "--batch-size", "32"]),
     ]
