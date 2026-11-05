@@ -101,8 +101,7 @@ def worker(gpu, tasks, status, lock):
         env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu))
         begin = time.time()
         for attempt in range(3):
-            with log.open("a", encoding="utf-8") as stream:
-                code = subprocess.run(cmd, cwd=CODE, env=env, stdout=stream, stderr=subprocess.STDOUT).returncode
+            code = run_logged(name, cmd, env, log)
             tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-25:]
             oom = any("OutOfMemory" in line or "out of memory" in line for line in tail)
             if code == 0 or not oom or "--batch-size" not in cmd:
@@ -124,6 +123,39 @@ def worker(gpu, tasks, status, lock):
                 status[name]["error_tail"] = tail[-8:]
             (OUT / "status.json").write_text(json.dumps(status, indent=2))
         print(name, status[name], flush=True)
+        if code == 0:
+            print(name, "SCORES", brief_scores(folder), flush=True)
+
+
+# Lines worth showing live in the Kaggle "Logs" tab (everything still goes to the per-run log).
+LIVE = ('{"epoch"', "s/QA", "loaded ", "non-finite", "Traceback", "Error", "error:")
+
+
+def run_logged(name, cmd, env, log):
+    """Run ``cmd``, write all output to ``log`` and echo progress / errors to the kernel log."""
+    with log.open("a", encoding="utf-8") as stream:
+        process = subprocess.Popen(cmd, cwd=CODE, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   text=True, errors="replace", bufsize=1)
+        for line in process.stdout:
+            stream.write(line)
+            if any(key in line for key in LIVE):
+                print(f"[{name}] {line.rstrip()[:300]}", flush=True)
+        return process.wait()
+
+
+def brief_scores(folder):
+    """Accuracy (%) of the main groups from a finished run's metrics.json."""
+    try:
+        metrics = json.loads(Path(CODE, folder, "metrics.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for part, scores in metrics.items():
+        if isinstance(scores, dict) and "overall" in scores:
+            out[part] = {k: round(100 * scores[k]["accuracy"], 2) for k in
+                         ("overall", "type:q1", "type:q2", "type:q3", "consistency")
+                         if k in scores and scores[k]["accuracy"] is not None}
+    return out
 
 
 def main():
