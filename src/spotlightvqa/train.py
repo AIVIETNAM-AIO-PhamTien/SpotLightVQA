@@ -141,6 +141,7 @@ def main(argv=None):
     p.add_argument("--image-size", type=int, default=224)
     p.add_argument("--epochs", type=int, default=8)
     p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--grad-accum", type=int, default=1, help="Effective batch = batch-size x grad-accum")
     p.add_argument("--lr-backbone", type=float, default=2e-5)
     p.add_argument("--lr-head", type=float, default=2e-4)
     p.add_argument("--weight-decay", type=float, default=0.01)
@@ -194,7 +195,9 @@ def main(argv=None):
     optimizer = torch.optim.AdamW([
         {"params": model.backbone_parameters(), "lr": args.lr_backbone},
         {"params": model.head_parameters(), "lr": args.lr_head}], weight_decay=args.weight_decay)
-    steps = args.epochs * len(loaders["train"])
+    accum = max(1, args.grad_accum)
+    per_epoch = math.ceil(len(loaders["train"]) / accum)
+    steps = args.epochs * per_epoch
     scheduler = get_cosine_schedule_with_warmup(optimizer, math.ceil(args.warmup * steps), steps)
     scaler = torch.amp.GradScaler("cuda", enabled=amp_dtype == torch.float16)
     criterion = torch.nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
@@ -204,7 +207,8 @@ def main(argv=None):
     for epoch in range(1, args.epochs + 1):
         model.train()
         started, totals = time.time(), {"loss": 0.0, "ce": 0.0, "spot": 0.0, "n": 0}
-        for batch in loaders["train"]:
+        optimizer.zero_grad(set_to_none=True)
+        for step, batch in enumerate(loaders["train"], 1):
             with torch.autocast(device.type, dtype=amp_dtype, enabled=amp_dtype is not None):
                 logits, attn = model(batch["pixel_values"].to(device, non_blocking=True),
                                      batch["input_ids"].to(device), batch["attention_mask"].to(device),
@@ -212,13 +216,14 @@ def main(argv=None):
                 ce = criterion(logits, batch["label"].to(device))
                 spot = spotlight_loss(attn, batch["target"].to(device)) if args.spotlight_weight else logits.new_zeros(())
                 loss = ce + args.spotlight_weight * spot
-            optimizer.zero_grad(set_to_none=True)
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            scaler.step(optimizer)
-            scaler.update()
-            scheduler.step()
+            scaler.scale(loss / accum).backward()
+            if step % accum == 0 or step == len(loaders["train"]):
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                scaler.step(optimizer)
+                scaler.update()
+                scheduler.step()
+                optimizer.zero_grad(set_to_none=True)
             n = batch["label"].size(0)
             for key, value in (("loss", loss), ("ce", ce), ("spot", spot)):
                 totals[key] += float(value.detach()) * n

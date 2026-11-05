@@ -151,7 +151,7 @@ Giả thuyết, tập đánh giá và phép kiểm định được cố định
 \textbf{Mã} & \textbf{Giả thuyết} & \textbf{So sánh (cùng câu hỏi)} & \textbf{Kết luận ``đúng'' khi} \\ \hline
 H2 (chính) & Spotlight cải thiện $Q_2{+}Q_3$ so với trả lời trực tiếp, với cùng một VLM & Direct vs Spotlight, tách riêng synthetic và Real-World & $p_{\text{Holm}} < 0.05$ (McNemar) và khoảng tin cậy 95\% của $\Delta$ nằm hoàn toàn trên 0 \\ \hline
 H3 (cơ chế) & Phần lợi đến từ việc \emph{nhìn đúng ô}, không phải do prompt hay do phóng to ảnh nói chung & (a) Direct $\rightarrow$ Oracle crop $\rightarrow$ Spotlight trên $Q_2$; (b) độ chính xác khi ô khoanh trúng (IoU $\ge 0.5$) so với khi khoanh trượt & Oracle $>$ Direct có ý nghĩa, và Spotlight-trúng $>$ Spotlight-trượt \\ \hline
-H4 (huấn luyện) & Spotlight Region Alignment giúp mô hình nhỏ vượt mốc sàn trên khái niệm chưa thấy & E5 vs E2 và E5 vs Question-only (5 fold gộp); E0 vs E2 trên Test cũ để đo mức học thuộc & Như H2 \\ \hline
+H4 (huấn luyện) & Spotlight Region Alignment cải thiện mô hình nhỏ trên khái niệm chưa thấy, và mô hình vượt mốc sàn & \textbf{E4 vs E5} (chỉ khác hạng tử Spotlight); mỗi cấu hình vs Question-only (5 fold gộp); E2 vs E4 (đóng góp của che logit, ảnh 448, augment); E0 vs E2 trên Test cũ để đo mức học thuộc & Như H2 \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -182,7 +182,7 @@ trong đó $m(q)$ che các logit ngoài $\mathcal{A}(q)$. Ảnh dùng độ phâ
 \subsection{Giao thức kiểm định}
 \begin{itemize}
     \item \textbf{Tập đánh giá VLM} (H2, H3): toàn bộ 420 ảnh biến thể \texttt{original} (714 câu $Q_2{+}Q_3$, trong đó 294 câu $Q_2$ có hộp đúng để làm Oracle) và toàn bộ 100 ảnh Real-World (186 câu $Q_2{+}Q_3$). Không lấy mẫu con.
-    \item \textbf{Tập đánh giá huấn luyện} (H4): 5 fold chia theo khái niệm, mỗi fold có 1 khái niệm VQAv2 và 1 khái niệm MagicBrush. Dự đoán Test của 5 fold được gộp lại, nên mỗi câu synthetic (5{,}670 câu) được chấm đúng một lần bởi mô hình chưa từng thấy khái niệm của nó. Checkpoint được chọn theo Val (khái niệm của fold kế tiếp), không theo Test.
+    \item \textbf{Tập đánh giá huấn luyện} (H4): 5 fold chia theo khái niệm, mỗi fold có 1 khái niệm VQAv2 và 1 khái niệm MagicBrush. Dự đoán Test của 5 fold được gộp lại, nên mỗi câu synthetic (5{,}670 câu) được chấm đúng một lần bởi mô hình chưa từng thấy khái niệm của nó. Checkpoint được chọn theo Val (khái niệm của fold kế tiếp), không theo Test. Mọi cấu hình dùng chung siêu tham số của lần 1: AdamW, LR $2\times10^{-5}$ cho backbone và $2\times10^{-4}$ cho head, cosine với 10\% warmup, 5 epoch, batch hiệu dụng 32 (ảnh 448 dùng $16\times2$ tích luỹ gradient), seed 42, GPU Kaggle 2$\times$T4 (fp16).
     \item \textbf{Phép kiểm định}: các phương pháp được so trên \emph{cùng câu hỏi}, nên nhóm dùng McNemar chính xác (nhị thức hai phía trên các cặp bất đồng). Khoảng tin cậy 95\% của $\Delta$ dùng \textbf{bootstrap theo ảnh} ($B = 5{,}000$), vì 3 câu của cùng một ảnh không độc lập với nhau. H2 có 2 phép thử chính, hiệu chỉnh bằng Holm. Các kết quả theo từng $Q_2$, $Q_3$ chỉ là phụ và mang tính mô tả.
     \item \textbf{Độ nhạy}: giả sử khoảng $25\%$ cặp câu bất đồng, hiệu ứng nhỏ nhất phát hiện được ở $\alpha=0.05$ là khoảng 4 điểm trên synthetic (714 câu) và khoảng 8 điểm trên Real-World (186 câu). Hiệu ứng nhỏ hơn mức này trên Real-World sẽ được báo cáo là \emph{chưa kết luận được}, không phải ``không có tác dụng''.
 \end{itemize}
@@ -236,9 +236,10 @@ Accuracy Spotlight khi khoanh trúng / khi khoanh trượt & \tbd{} / \tbd \\ \h
 \begin{tabular}{|l|c|c|c|c|c|}
 \hline
 \textbf{So sánh} & \textbf{Acc A} & \textbf{Acc B} & \textbf{$\Delta$ [CI 95\%]} & \textbf{$p$} & \textbf{Kết luận} \\ \hline
+\textbf{E4 (A) vs E5 (B): chỉ khác Spotlight loss} & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Question-only (A) vs E5 (B) & 78.40 & \tbd & \tbd & \tbd & \tbd \\
 Question-only (A) vs E2: công thức lần 1 (B) & 78.40 & \tbd & \tbd & \tbd & \tbd \\
-Question-only (A) vs E5: Spotlight loss (B) & 78.40 & \tbd & \tbd & \tbd & \tbd \\
-E2 (A) vs E5 (B) & \tbd & \tbd & \tbd & \tbd & \tbd \\
+E2 (A) vs E4 (B): che logit + 448 + augment & \tbd & \tbd & \tbd & \tbd & \tbd \\
 E0 chia cũ (A) vs E2 chia theo khái niệm (B), trên 825 câu Test cũ & \tbd & \tbd & \tbd & \tbd & mức học thuộc \\ \hline
 \end{tabular}
 \end{table}

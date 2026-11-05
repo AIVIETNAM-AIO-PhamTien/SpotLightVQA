@@ -24,9 +24,11 @@ File đầy đủ: `outputs/audit/audit.json`.
 | H1 (đã chứng minh) | rò rỉ của cách chia lần 1 + mốc sàn không nhìn ảnh | `spotlightvqa.cli audit` |
 | H2 (chính) | Direct vs Spotlight (ground-then-zoom), Q2+Q3; 420 ảnh `original` + 100 ảnh real-world | `spotlightvqa.vlm --method spotlight --variants original` |
 | H3 (cơ chế) | Direct → Oracle crop → Spotlight; độ chính xác theo IoU ≥ 0.5 | cùng lần chạy H2 |
-| H4 (huấn luyện) | E5 vs E2 vs Question-only (5 fold theo khái niệm); E0 vs E2 trên Test cũ | `spotlightvqa.train` (E0, E2, E5) |
+| H4 (huấn luyện) | E5 vs E4 (chỉ khác Spotlight loss), E4 vs E2, từng cấu hình vs Question-only (5 fold theo khái niệm); E0 vs E2 trên Test cũ | `spotlightvqa.train` (E0, E2, E4, E5) |
 
 Kiểm định: McNemar chính xác; CI 95% bằng bootstrap theo ảnh (B = 5000); Holm cho 2 phép thử của H2.
 `python -m spotlightvqa.evidence --runs outputs` sinh `outputs/evidence.json`.
 
 Sửa notebook bằng `scripts/make_notebook.py` rồi chạy lại script, không sửa file `.ipynb` trực tiếp.
+
+Chạy trên Kaggle (2×T4): `python scripts/kaggle/push.py` rồi theo dõi bằng `kaggle kernels status tienphamml/spotlightvqa-tiendo2`.

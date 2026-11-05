@@ -37,7 +37,7 @@ def _fake_root(root):
     (root / "real-world/test/metadata.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
 
 
-@pytest.mark.parametrize("extra", [["--split", "concept", "--spotlight-weight", "0.5", "--augment"],
+@pytest.mark.parametrize("extra", [["--split", "concept", "--spotlight-weight", "0.5", "--augment", "--grad-accum", "2"],
                                    ["--split", "legacy", "--blind", "--no-mask-answers"]])
 def test_train_end_to_end(tmp_path, extra):
     pytest.importorskip("torch")

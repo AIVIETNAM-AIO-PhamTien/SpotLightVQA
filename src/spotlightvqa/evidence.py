@@ -83,13 +83,17 @@ def training_evidence(syn, runs_root, seed=42):
     for fold in concept_folds(syn, seed=seed):
         floor.update(question_only(fold["train"], fold["test"]))
     complete = {k: v for k, v in concept.items() if all(r["question_id"] in v for r in closed)}
-    names = sorted(complete)
-    base = next((n for n in names if "E2" in n), None)
-    for name in names:
-        rows = closed
-        out[f"{name}_vs_question_only"] = paired_compare(rows, floor, complete[name], "Question-only", name)
-        if base and name != base:
-            out[f"{name}_vs_{base}"] = paired_compare(rows, complete[base], complete[name], base, name)
+    find = lambda code: next((n for n in sorted(complete) if f"_{code}_" in n + "_"), None)  # noqa: E731
+    for name in sorted(complete):
+        out[f"{name}_vs_question_only"] = paired_compare(closed, floor, complete[name], "Question-only", name)
+    # Each pair differs in exactly one factor group:
+    #   E4 vs E5: Spotlight Region Alignment loss only (H4, primary for training)
+    #   E2 vs E4: report-1 recipe -> answer mask + 448 + colour augmentation
+    for a, b in (("E4", "E5"), ("E2", "E4")):
+        na, nb = find(a), find(b)
+        if na and nb:
+            out[f"{nb}_vs_{na}"] = paired_compare(closed, complete[na], complete[nb], na, nb)
+    base = find("E2")
     legacy = next((v for k, v in pooled.items() if k.startswith("legacy_")), None)
     if legacy and base:
         test_ids = {r["question_id"] for r in legacy_split(syn, seed=seed)["test"]}

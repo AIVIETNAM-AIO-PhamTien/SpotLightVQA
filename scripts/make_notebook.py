@@ -12,7 +12,7 @@ run đã có `metrics.json` được bỏ qua, phần VLM tự resume từ `pred
 | Bước | Nội dung |
 |---|---|
 | 1–3 | Cài đặt, tải dữ liệu, audit rò rỉ (CPU) |
-| 4 | Train 3 cấu hình: tái hiện lần 1 (E0), baseline chia theo khái niệm (E2), Spotlight loss (E5) |
+| 4 | Train: tái hiện lần 1 (E0), baseline chia theo khái niệm (E2), công thức cải tiến (E4), + Spotlight loss (E5) |
 | 5 | Qwen2.5-VL-3B zero-shot: Direct và Spotlight (ground-then-zoom) trong cùng một lần chạy |
 | 6 | Tổng hợp bảng cho báo cáo |
 
@@ -59,7 +59,8 @@ backup()"""),
 |---|---|---|---|
 | E0 | legacy | như lần 1 (224, không che logit) | tái hiện con số 97% |
 | E2 | concept | như lần 1 | còn bao nhiêu khi khái niệm test chưa từng thấy |
-| E5 | concept | che logit + 448 + augment màu + Spotlight loss 0.2 | Spotlight có vượt mốc chỉ-đọc-câu-hỏi không |
+| E4 | concept | che logit + 448 + augment màu | công thức cải tiến, chưa có Spotlight loss |
+| E5 | concept | E4 + Spotlight loss 0.2 | E5 vs E4 chỉ khác đúng Spotlight loss |
 
 Tên run `<split>_f<fold>_<tag>` để bước 6 gom fold."""),
 ("code", """FOLDS = [0, 1, 2, 3, 4]
@@ -68,6 +69,7 @@ BS = 32
 EXPERIMENTS = {
     'E0_report1': ('legacy',  ['--image-size', '224', '--no-mask-answers']),
     'E2_report1': ('concept', ['--image-size', '224', '--no-mask-answers']),
+    'E4_hires_aug': ('concept', ['--image-size', '448', '--augment']),
     'E5_full':    ('concept', ['--image-size', '448', '--augment', '--spotlight-weight', '0.2']),
 }
 RUN_ONLY = list(EXPERIMENTS)"""),
@@ -110,7 +112,7 @@ for line in open(f'{out}/predictions.jsonl', encoding='utf-8'):
         display(im.resize((400, int(400 * im.height / im.width))))
         shown += 1"""),
 ("md", """## 6. Kiểm định giả thuyết + tổng hợp cho báo cáo
-`evidence.json`: H2 (Spotlight vs Direct, McNemar + bootstrap theo ảnh, Holm), H3 (Direct/Spotlight/Oracle, tỉ lệ khoanh trúng ô), H4 (E5 vs E2 vs Question-only; E0 vs E2 trên test cũ).
+`evidence.json`: H2 (Spotlight vs Direct, McNemar + bootstrap theo ảnh, Holm), H3 (Direct/Spotlight/Oracle, tỉ lệ khoanh trúng ô), H4 (E5 vs E4, E4 vs E2, từng cấu hình vs Question-only; E0 vs E2 trên test cũ).
 Các dòng LaTeX in ra dùng để điền Bảng 5–6 trong `report/bao_cao_tien_do_2.tex`; hoặc gửi lại file `summary.json`."""),
 ("code", """!python -m spotlightvqa.evidence --data-root data/raw --runs outputs --output outputs/evidence.json
 !python -m spotlightvqa.summarize --data-root data/raw --runs outputs --output outputs/summary.json

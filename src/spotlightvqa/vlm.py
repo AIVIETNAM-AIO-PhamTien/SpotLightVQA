@@ -92,13 +92,31 @@ def candidate_ids(tokenizer, label):
 
 
 class VLM:
-    def __init__(self, name, min_pixels, max_pixels, bbox_format):
-        from transformers import AutoModelForImageTextToText, AutoProcessor
-        dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
+    def __init__(self, name, min_pixels, max_pixels, bbox_format, dtype="auto"):
+        from transformers import AutoProcessor
+        self.name, self.bbox_format, self._ids = name, bbox_format, {}
         self.processor = AutoProcessor.from_pretrained(name, min_pixels=min_pixels, max_pixels=max_pixels)
-        self.model = AutoModelForImageTextToText.from_pretrained(name, dtype=dtype, device_map="auto").eval()
-        self.bbox_format = bbox_format
-        self._ids = {}
+        if dtype == "auto":
+            bf16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+            dtype = "bf16" if bf16 else "fp16"
+        self._load(dtype)
+
+    def _load(self, dtype):
+        from transformers import AutoModelForImageTextToText
+        self.dtype = dtype
+        torch_dtype = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}[dtype]
+        self.model = AutoModelForImageTextToText.from_pretrained(
+            self.name, dtype=torch_dtype, device_map="auto").eval()
+        print(f"loaded {self.name} in {dtype}", flush=True)
+
+    def _fallback_fp32(self):
+        """fp16 (GPUs without bf16, e.g. T4) can overflow; the first non-finite logit switches to fp32."""
+        if self.dtype == "fp32":
+            raise RuntimeError("Non-finite logits even in fp32")
+        print("non-finite logits in", self.dtype, "-> reloading in fp32", flush=True)
+        del self.model
+        torch.cuda.empty_cache()
+        self._load("fp32")
 
     def _inputs(self, image, prompt):
         messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt}]}]
@@ -107,7 +125,11 @@ class VLM:
 
     @torch.no_grad()
     def score(self, image, prompt, labels):
-        logits = self.model(**self._inputs(image, prompt)).logits[0, -1].float().log_softmax(-1)
+        logits = self.model(**self._inputs(image, prompt)).logits[0, -1].float()
+        if not torch.isfinite(logits).all():
+            self._fallback_fp32()
+            logits = self.model(**self._inputs(image, prompt)).logits[0, -1].float()
+        logits = logits.log_softmax(-1)
         out = {}
         for label in labels:
             if label not in self._ids:
@@ -178,6 +200,7 @@ def main(argv=None):
     p.add_argument("--method", choices=["direct", "spotlight"], default="direct")
     p.add_argument("--bbox-format", choices=["abs", "rel1000"], default="abs",
                    help="abs for Qwen2.5-VL, rel1000 for Qwen3-VL")
+    p.add_argument("--dtype", choices=["auto", "bf16", "fp16", "fp32"], default="auto")
     p.add_argument("--subsets", nargs="+", default=["synthetic", "real-world"])
     p.add_argument("--min-pixels", type=int, default=256 * 28 * 28)
     p.add_argument("--max-pixels", type=int, default=1280 * 28 * 28)
@@ -212,7 +235,7 @@ def main(argv=None):
                 record = json.loads(line)
                 done[record["question_id"]] = record["prediction"]
                 direct[record["question_id"]] = record.get("direct", record["prediction"])
-    vlm = VLM(args.model, args.min_pixels, args.max_pixels, args.bbox_format)
+    vlm = VLM(args.model, args.min_pixels, args.max_pixels, args.bbox_format, args.dtype)
     started = time.time()
     with path.open("a", encoding="utf-8") as stream:
         todo = [r for r in rows if r["question_id"] not in done]

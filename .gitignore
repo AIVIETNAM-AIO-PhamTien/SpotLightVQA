@@ -17,3 +17,4 @@ data/synthetic/*
 outputs/*
 !outputs/.gitkeep
 .ipynb_checkpoints/
+dist/
