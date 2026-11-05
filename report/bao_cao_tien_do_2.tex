@@ -90,7 +90,7 @@ Có mốc con người (96.0 / 99.0) và mốc ngẫu nhiên (38.4 / 37.7). &
 \subsection{Báo cáo lần 1 của nhóm}
 \label{sec:h1}
 
-\textbf{H1: Kết quả lần 1 không đo được khả năng hiểu ảnh.} Bằng chứng dưới đây là các phép đếm và phép đo tất định trên metadata (lệnh \texttt{audit}, seed 42), không phải ước lượng.
+\textbf{H1: Kết quả lần 1 không đo được khả năng hiểu ảnh.} Bằng chứng dưới đây là các phép đếm và phép đo tất định trên metadata (lệnh \texttt{audit}, seed 42), không phải ước lượng. Lệnh này đã được chạy độc lập trên hai môi trường: máy cá nhân (Windows, Python 3.14) và Kaggle (Linux, bản phát hành HuggingFace tải lại từ đầu). Hai lần cho \textbf{cùng một kết quả đến từng chữ số}.
 
 \textbf{(a) Rò rỉ dữ liệu.} 2{,}100 ảnh synthetic được sinh từ 10 khái niệm câu hỏi, 7 số ô, 6 layout và 5 biến thể, và chỉ dùng \textbf{60 ảnh con}. Mỗi khái niệm dùng lại cùng các ảnh con ở mọi layout. Nhóm tái hiện cách chia của lần 1 (\texttt{GroupShuffleSplit} theo $Q_1\parallel Q_2$, 70/15/15) và thu được 1{,}470/315/315 ảnh; lần 1 ghi 1{,}465/320/315 ảnh.
 
