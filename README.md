@@ -1,4 +1,11 @@
-# SpotLightVQA — pipeline tuần 1
+# SpotLightVQA
+
+> **Tiến độ 2 (05/11/2026).** Thêm nạp dữ liệu HF chuẩn, audit rò rỉ, chia tập theo khái niệm,
+> bộ đo mới, mô hình CrossModalMultipanelVQA có che logit / ảnh 448 / Spotlight loss, đánh giá
+> zero-shot VLM và notebook Colab. Xem mục [Tiến độ 2](#tiến-độ-2-thí-nghiệm-trên-gpu) bên dưới và
+> [docs/tiendo2.md](docs/tiendo2.md).
+
+## Pipeline tuần 1
 
 Triển khai phần **Pipeline / người 5** của `plan-tuần-1.pdf`: môi trường dùng chung, khung repo, metric có test và mẻ synthetic nhỏ chạy từ code gốc. Cả nhóm dùng **CPython 3.15.2** (bản chuẩn có GIL) và cùng `requirements.txt` đã ghim phiên bản bằng `==`. Phiên bản Python được ghi trong `.python-version`. Pipeline CPU không cần tải VLM.
 
@@ -30,6 +37,26 @@ Tạo **3 ảnh 1000×1000, lần lượt 2/4/8 panel**, cùng QA JSONL, metadat
 
 `reference_predictions.jsonl` sao chép đáp án để kiểm tra plumbing; điểm 100% ở bước này **không phải kết quả VLM**. Để tái tạo benchmark synthetic bằng ảnh thật, làm theo [hướng dẫn upstream](https://github.com/UCSB-AI/MultipanelVQA#generate-synthetic-multipanel-images) và hai notebook gốc; cần chuẩn bị VQAv2/COCO. Không tự coi fixture là dữ liệu benchmark.
 
+## Tiến độ 2: thí nghiệm trên GPU
+
+Audit (CPU, chỉ cần metadata, không cần ảnh):
+
+```powershell
+.\.venv\Scripts\python.exe -m spotlightvqa.cli audit --data-root data/raw --output outputs/audit/audit.json
+```
+
+Train và VLM chạy trên Colab bằng [notebooks/colab_tiendo2.ipynb](notebooks/colab_tiendo2.ipynb)
+(cài `requirements-colab.txt`). Lệnh lẻ:
+
+```bash
+python -m spotlightvqa.train --split concept --fold 0 --image-size 448 --augment --spotlight-weight 0.2 --output outputs/train/concept_f0_E5_full
+python -m spotlightvqa.vlm --model Qwen/Qwen2.5-VL-3B-Instruct --max-pixels 1003520 --output outputs/vlm/qwen25vl3b_hi
+python -m spotlightvqa.summarize --runs outputs --output outputs/summary.json
+```
+
+`prepare` nay đọc thẳng `test/metadata.jsonl` của bản phát hành HF; `infer --resume` ghi từng dự
+đoán ngay khi có và bỏ qua câu đã chạy.
+
 ## Cấu trúc
 
 ```text
@@ -37,7 +64,9 @@ data/raw/          dữ liệu gốc, không commit
 data/processed/    QA chuẩn hóa và tập con
 data/synthetic/    ảnh và metadata sinh thử
 src/spotlightvqa/  CLI, adapter dữ liệu, metric, generator
-notebooks/         khám phá dữ liệu
+notebooks/         khám phá dữ liệu, notebook Colab tiến độ 2
+report/            báo cáo tiến độ (LaTeX)
+scripts/           sinh notebook
 docs/              giao thức, nguồn, biên bản kiểm tra
 outputs/<run_id>/  experiment.json, metrics.json, predictions.jsonl
 tests/             test metric và pipeline

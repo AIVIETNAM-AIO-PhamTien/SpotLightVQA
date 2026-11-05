@@ -42,6 +42,34 @@ def score(args):
     print(json.dumps({"run_id": run_id, "scores": result["scores"], "artifacts": str(output)}, indent=2))
 
 
+def infer_command(args):
+    """Run the adapter on every row. With --resume, rows already in --output are skipped and
+    each new prediction is appended immediately, so a long GPU job can be restarted."""
+    module, function = args.predictor.split(":", 1)
+    call_model = getattr(importlib.import_module(module), function)
+    output = Path(args.output)
+    done = set()
+    if args.resume and output.exists():
+        done = {r["question_id"] for r in read_jsonl(output)}
+    elif output.exists():
+        output.unlink()
+    rows = read_jsonl(args.data)
+    for row in rows:
+        if not Path(row["image"]).is_file():
+            raise FileNotFoundError(row["image"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("a", encoding="utf-8") as stream:
+        for row in rows:
+            if row["question_id"] in done:
+                continue
+            prediction = call_model(row["image"], row["question"])
+            if not isinstance(prediction, str):
+                raise TypeError("Predictor must return a string")
+            stream.write(json.dumps({"question_id": row["question_id"], "prediction": prediction},
+                                    ensure_ascii=False) + "\n")
+            stream.flush()
+
+
 def main():
     parser = argparse.ArgumentParser(description="MultipanelVQA week-one pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -60,6 +88,12 @@ def main():
     infer.add_argument("--data", required=True)
     infer.add_argument("--predictor", required=True)
     infer.add_argument("--output", required=True)
+    infer.add_argument("--resume", action="store_true", help="Keep existing predictions and append the rest")
+    aud = sub.add_parser("audit", help="Dataset stats, split leakage and image-free baselines (CPU)")
+    aud.add_argument("--data-root", default="data/raw")
+    aud.add_argument("--output", default="outputs/audit/audit.json")
+    aud.add_argument("--folds", type=int, default=5)
+    aud.add_argument("--seed", type=int, default=42)
     ev = sub.add_parser("evaluate", help="Local exact match with evaluation artifacts")
     ev.add_argument("--data", required=True)
     ev.add_argument("--predictions", required=True)
@@ -75,17 +109,13 @@ def main():
     elif args.command == "prepare":
         write_jsonl(args.output, prepare(args.source, args.image_root, args.subset, args.images, args.seed))
     elif args.command == "infer":
-        module, function = args.predictor.split(":", 1)
-        call_model = getattr(importlib.import_module(module), function)
-        predictions = []
-        for row in read_jsonl(args.data):
-            if not Path(row["image"]).is_file():
-                raise FileNotFoundError(row["image"])
-            prediction = call_model(row["image"], row["question"])
-            if not isinstance(prediction, str):
-                raise TypeError("Predictor must return a string")
-            predictions.append({"question_id": row["question_id"], "prediction": prediction})
-        write_jsonl(args.output, predictions)
+        infer_command(args)
+    elif args.command == "audit":
+        from .audit import run
+        result = run(args.data_root, args.output, n_folds=args.folds, seed=args.seed)
+        print(json.dumps({"legacy_split": result["legacy_split"]["leakage_test_vs_train"],
+                          "legacy_baselines": result["legacy_split"]["baselines"],
+                          "concept_cv_pooled": result["concept_cv_pooled"]}, indent=2))
     else:
         score(args)
 

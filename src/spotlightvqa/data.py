@@ -15,8 +15,25 @@ def write_jsonl(path, rows):
 
 
 def prepare(source, image_root, subset, limit, seed):
-    """Sample complete images, keeping all associated questions together."""
+    """Sample complete images, keeping all associated questions together.
+
+    ``source`` is either the HF release ``metadata.jsonl`` (one record per image with
+    ``question_1..3``/``answer_1..3``) or the upstream generation JSON list
+    (``composited_gallery`` + ``qa``).
+    """
     source = Path(source)
+    if source.suffix == ".jsonl":
+        from .mpvqa import load_subset
+        rows = load_subset(source, image_root, subset)
+        if limit < 1:
+            raise ValueError("Image limit must be positive")
+        images = sorted({r["image_id"] for r in rows})
+        keep = set(random.Random(seed).sample(images, min(limit, len(images))))
+        rows = [r for r in rows if r["image_id"] in keep]
+        for row in rows:
+            if not Path(row["image"]).is_file():
+                raise FileNotFoundError(row["image"])
+        return rows
     items = json.loads(source.read_text(encoding="utf-8"))
     if not isinstance(items, list) or not items:
         raise ValueError("Expected a nonempty official JSON list of multipanel records")

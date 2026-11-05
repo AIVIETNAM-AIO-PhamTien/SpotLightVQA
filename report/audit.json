@@ -1,0 +1,447 @@
+{
+  "stats": {
+    "synthetic": {
+      "images": 2100,
+      "qa": 6300,
+      "qa_closed": 5670,
+      "answers": {
+        "q1": {
+          "no": 1240,
+          "yes": 860
+        },
+        "q2": {
+          "yes": 1050,
+          "no": 420
+        },
+        "q3": {
+          "a": 1085,
+          "b": 500,
+          "c": 365,
+          "d": 150
+        }
+      },
+      "concepts": 10,
+      "cores": 420,
+      "variants": {
+        "original": 420,
+        "enlarged_images": 420,
+        "with_text_hint_images": 420,
+        "visually_different_images": 420,
+        "with_background_images": 420
+      }
+    },
+    "real-world": {
+      "images": 100,
+      "qa": 300,
+      "qa_closed": 283,
+      "answers": {
+        "q1": {
+          "yes": 66,
+          "no": 31
+        },
+        "q2": {
+          "yes": 46,
+          "no": 40
+        },
+        "q3": {
+          "c": 40,
+          "a": 26,
+          "d": 17,
+          "b": 16,
+          "e": 1
+        }
+      }
+    }
+  },
+  "unique_sub_images": 60,
+  "legacy_split": {
+    "sizes": {
+      "train": {
+        "images": 1470,
+        "qa_closed": 3995
+      },
+      "val": {
+        "images": 315,
+        "qa_closed": 850
+      },
+      "test": {
+        "images": 315,
+        "qa_closed": 825
+      }
+    },
+    "leakage_test_vs_train": {
+      "concept": {
+        "test_rows_sharing": 945,
+        "test_rows": 945,
+        "fraction": 1.0
+      },
+      "core_qa": {
+        "test_rows_sharing": 0,
+        "test_rows": 945,
+        "fraction": 0.0
+      },
+      "question_text": {
+        "test_rows_sharing": 240,
+        "test_rows": 945,
+        "fraction": 0.25396825396825395
+      },
+      "sub_image_any": {
+        "test_rows_sharing": 945,
+        "test_rows": 945,
+        "fraction": 1.0
+      },
+      "sub_image_all": {
+        "test_rows_sharing": 945,
+        "test_rows": 945,
+        "fraction": 1.0
+      }
+    },
+    "baselines": {
+      "majority": {
+        "test_synthetic": {
+          "overall": 62.42,
+          "type:q1": 60.32,
+          "type:q2": 74.36,
+          "type:q3": 57.14,
+          "consistency": 20.51
+        },
+        "real_world": {
+          "overall": 36.4,
+          "type:q1": 31.96,
+          "type:q2": 53.49,
+          "type:q3": 26.0,
+          "consistency": 2.41
+        }
+      },
+      "question_only": {
+        "test_synthetic": {
+          "overall": 88.48,
+          "type:q1": 96.83,
+          "type:q2": 100.0,
+          "type:q3": 73.02,
+          "consistency": 71.79
+        },
+        "real_world": {
+          "overall": 51.24,
+          "type:q1": 73.2,
+          "type:q2": 53.49,
+          "type:q3": 28.0,
+          "consistency": 19.28
+        }
+      }
+    }
+  },
+  "concept_folds": [
+    {
+      "fold": 0,
+      "test_concepts": [
+        "VQA:3",
+        "magicbrush:3"
+      ],
+      "val_concepts": [
+        "VQA:1",
+        "magicbrush:2"
+      ],
+      "sizes": {
+        "train": 3150,
+        "val": 1260,
+        "test": 1260
+      },
+      "leakage_test_vs_train": {
+        "concept": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "core_qa": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "question_text": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_any": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_all": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        }
+      },
+      "majority": {
+        "overall": 37.3,
+        "type:q1": 61.9,
+        "type:q2": 0.0,
+        "type:q3": 50.0,
+        "consistency": 0.0
+      },
+      "question_only": {
+        "overall": 81.35,
+        "type:q1": 95.24,
+        "type:q2": 75.0,
+        "type:q3": 73.81,
+        "consistency": 52.38
+      }
+    },
+    {
+      "fold": 1,
+      "test_concepts": [
+        "VQA:1",
+        "magicbrush:2"
+      ],
+      "val_concepts": [
+        "VQA:2",
+        "magicbrush:0"
+      ],
+      "sizes": {
+        "train": 3360,
+        "val": 1050,
+        "test": 1260
+      },
+      "leakage_test_vs_train": {
+        "concept": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "core_qa": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "question_text": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_any": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_all": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        }
+      },
+      "majority": {
+        "overall": 67.86,
+        "type:q1": 59.52,
+        "type:q2": 100.0,
+        "type:q3": 44.05,
+        "consistency": 22.62
+      },
+      "question_only": {
+        "overall": 91.67,
+        "type:q1": 100.0,
+        "type:q2": 100.0,
+        "type:q3": 75.0,
+        "consistency": 75.0
+      }
+    },
+    {
+      "fold": 2,
+      "test_concepts": [
+        "VQA:2",
+        "magicbrush:0"
+      ],
+      "val_concepts": [
+        "VQA:4",
+        "magicbrush:4"
+      ],
+      "sizes": {
+        "train": 3780,
+        "val": 840,
+        "test": 1050
+      },
+      "leakage_test_vs_train": {
+        "concept": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "core_qa": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "question_text": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_any": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_all": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        }
+      },
+      "majority": {
+        "overall": 50.48,
+        "type:q1": 63.1,
+        "type:q2": 0.0,
+        "type:q3": 63.1,
+        "consistency": 0.0
+      },
+      "question_only": {
+        "overall": 62.86,
+        "type:q1": 94.05,
+        "type:q2": 0.0,
+        "type:q3": 63.1,
+        "consistency": 0.0
+      }
+    },
+    {
+      "fold": 3,
+      "test_concepts": [
+        "VQA:4",
+        "magicbrush:4"
+      ],
+      "val_concepts": [
+        "VQA:0",
+        "magicbrush:1"
+      ],
+      "sizes": {
+        "train": 3570,
+        "val": 1260,
+        "test": 840
+      },
+      "leakage_test_vs_train": {
+        "concept": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "core_qa": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "question_text": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_any": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_all": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        }
+      },
+      "majority": {
+        "overall": 56.55,
+        "type:q1": 48.81,
+        "type:q3": 64.29
+      },
+      "question_only": {
+        "overall": 83.93,
+        "type:q1": 88.1,
+        "type:q3": 79.76
+      }
+    },
+    {
+      "fold": 4,
+      "test_concepts": [
+        "VQA:0",
+        "magicbrush:1"
+      ],
+      "val_concepts": [
+        "VQA:3",
+        "magicbrush:3"
+      ],
+      "sizes": {
+        "train": 3150,
+        "val": 1260,
+        "test": 1260
+      },
+      "leakage_test_vs_train": {
+        "concept": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "core_qa": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "question_text": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_any": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        },
+        "sub_image_all": {
+          "test_rows_sharing": 0,
+          "test_rows": 1260,
+          "fraction": 0.0
+        }
+      },
+      "majority": {
+        "overall": 49.6,
+        "type:q1": 61.9,
+        "type:q2": 50.0,
+        "type:q3": 36.9,
+        "consistency": 11.9
+      },
+      "question_only": {
+        "overall": 71.43,
+        "type:q1": 100.0,
+        "type:q2": 50.0,
+        "type:q3": 64.29,
+        "consistency": 35.71
+      }
+    }
+  ],
+  "concept_cv_pooled": {
+    "majority": {
+      "overall": 52.12,
+      "type:q1": 59.05,
+      "type:q2": 42.86,
+      "type:q3": 51.67,
+      "consistency": 9.86
+    },
+    "question_only": {
+      "overall": 78.4,
+      "type:q1": 95.48,
+      "type:q2": 64.29,
+      "type:q3": 71.19,
+      "consistency": 46.6
+    }
+  },
+  "chance": {
+    "synthetic": {
+      "overall": 40.74,
+      "type:q1": 50.0,
+      "type:q2": 50.0,
+      "type:q3": 25.0
+    },
+    "real_world": {
+      "overall": 41.19,
+      "type:q1": 50.0,
+      "type:q2": 50.0,
+      "type:q3": 25.07
+    }
+  }
+}

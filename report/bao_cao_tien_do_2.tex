@@ -1,0 +1,258 @@
+\documentclass[12pt]{ai_conquer2026}
+
+\title{%
+  \begin{center}
+        \Large {AI VIET NAM -- AI Conquer 2026}\\[.5ex]
+        \Huge \textbf{Báo cáo kết quả lần 2}\\[.5ex]
+        \Large \textbf{SpotlightVQA}\\[.5ex]
+  \end{center}
+}
+
+% Author --------------------------------------------------------------------
+\posttitle{
+\author{
+\begin{minipage}{\textwidth}
+\centering
+{
+\vspace{-1.5em}
+Tên nhóm: \textbf{AIO - Lovisong}\\[0.5em]}
+\end{minipage}
+}
+}
+\date{}
+
+% Header --------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\href{https://www.facebook.com/aivietnam.edu.vn}{\textcolor{aivnGreen}{\bfseries AI VIET NAM (AI Conquer 2026)}}}
+\rhead{\href{https://aivietnam.edu.vn/}{\textcolor{aivnGreen}{\bfseries aivietnam.edu.vn}}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{1.0pt}
+\renewcommand{\headrule}{{\color{aivnGreen}\hrule width\headwidth height\headrulewidth \vskip-\headrulewidth}}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\fillin}[1]{\textcolor{gray}{\textit{[#1]}}}
+\newcommand{\tbd}{\fillin{chờ}}
+
+\begin{document}
+\maketitle
+\vspace{-5.5em}
+
+% -----------------------------------------------------------------------
+\vspace{1em}
+
+\section{Tóm tắt}
+
+Ở lần 2, nhóm tập trung vào hai việc: \textbf{(1) thiết kế lại bài toán} để con số đo được đúng khả năng hiểu ảnh đa ô, và \textbf{(2) chứng minh kết quả} bằng các giả thuyết được đăng ký trước, kèm kiểm định thống kê theo cặp. Kết quả chính đến thời điểm này:
+
+\begin{enumerate}
+    \item \textbf{Đã chứng minh (H1)}: con số $97.09\%$ ở lần 1 không đo được khả năng nhìn ảnh. Tập synthetic chỉ có 10 khái niệm câu hỏi và 60 ảnh con. Với cách chia ở lần 1, $100\%$ câu Test có cùng khái niệm và cùng ảnh con với Train. Một bộ phân loại \emph{chỉ đọc câu hỏi} đạt $88.48\%$ ($Q_2 = 100\%$). Trên Real-World, bộ phân loại này đạt $51.24\%$, cao hơn mô hình lần 1 ($47.67\%$).
+    \item \textbf{Đề xuất}: \emph{Spotlight} là phương pháp ``khoanh vùng rồi phóng to'' (ground-then-zoom) không cần huấn luyện. VLM tự khoanh ô mà câu hỏi nhắc tới, rồi trả lời trên ô đã cắt. Phương pháp này tự động hoá thí nghiệm \emph{bỏ các ô lân cận} của paper gốc, vốn cần con người cung cấp vị trí ô.
+    \item \textbf{Đang chờ chạy GPU (H2--H4)}: giả thuyết, tập đánh giá, phép kiểm định và tiêu chí kết luận đã được cố định trong mã nguồn \emph{trước khi} có kết quả. Các ô \tbd{} sẽ được điền sau khi chạy notebook Colab.
+\end{enumerate}
+
+% -----------------------------------------------------------------------
+\section{Phát biểu bài toán}
+\label{sec:problem}
+
+Mỗi mẫu gồm một ảnh đa ô $I$ (2--8 ô), một câu hỏi $q$ và đáp án $y \in \mathcal{A}(q)$, với $\mathcal{A}(q) = \{\text{yes},\text{no}\}$ cho $Q_1, Q_2$ và $\mathcal{A}(q) = \{$các chữ cái mà câu hỏi liệt kê$\}$ (3--5 lựa chọn) cho $Q_3$:
+\begin{itemize}
+    \item $Q_1$ (toàn ảnh): ``Có ô nào / mọi ô đều chứa X?''
+    \item $Q_2$ (vị trí $\rightarrow$ nội dung): ``Ô ở vị trí P có chứa X?''
+    \item $Q_3$ (nội dung $\rightarrow$ vị trí): ``Ô nào chứa X?'', chọn một mô tả vị trí.
+\end{itemize}
+Độ đo chính là Accuracy trên câu \emph{đóng}. Câu có đáp án mở được loại ra và ghi rõ số lượng: 630/6{,}300 câu synthetic và 17/300 câu Real-World. Nhóm dùng Accuracy thay cho GPT-4 judge vì phép so khớp tất định không phụ thuộc vào một bộ chấm chưa được kiểm chứng. Consistency là tỉ lệ ảnh trả lời đúng cả 3 câu, chỉ tính trên các ảnh có đủ 3 câu đóng.
+
+\textbf{Định nghĩa ``hiểu ảnh đa ô''.} Một mô hình $f(I,q)$ chỉ được coi là có dùng ảnh khi nó vượt \emph{có ý nghĩa thống kê} một mốc sàn \textbf{không nhìn ảnh} $g(q)$, trên các câu hỏi có khái niệm chưa từng xuất hiện khi huấn luyện. Mốc ``đoán ngẫu nhiên'' mà paper và báo cáo lần 1 dùng là quá thấp, vì đáp án của tập dữ liệu đoán được một phần chỉ từ câu hỏi (Mục~\ref{sec:h1}).
+
+% -----------------------------------------------------------------------
+\section{Đánh giá thiết kế và chứng minh của các công trình trước}
+
+\subsection{Paper MultipanelVQA (Fan et al., ACL 2024)}
+
+\begin{table}[h!]
+\centering
+\small
+\caption{Điểm mạnh và điểm yếu trong cách paper gốc thiết kế và chứng minh.}
+\label{tab:paper}
+\begin{tabularx}{\textwidth}{|Y|Y|}
+\hline
+\textbf{Điểm mạnh} & \textbf{Điểm yếu / chưa chặt} \\ \hline
+Synthetic được \textbf{thiết kế có đối chứng}: mỗi bố cục có 5 biến thể với \emph{cùng câu hỏi và cùng đáp án} (gốc, phóng to ô đích, nền caro, gợi ý chữ, ô khác biệt về hình ảnh). Khác biệt giữa các biến thể vì vậy chỉ do yếu tố được thay đổi. &
+\textbf{Không có kiểm định ý nghĩa hay khoảng tin cậy}. Bảng chính chỉ báo mean $\pm$ std của 3 lần chạy. Bảng so sánh theo yếu tố dùng một lần chạy, với các hiệu ứng nhỏ như $+1.8$ hay $-0.2$ điểm. Thiết kế theo cặp có sẵn nhưng không được dùng để kiểm định theo cặp. \\ \hline
+Thí nghiệm \textbf{bỏ các ô lân cận} ($Q_2$) tách được hai nguyên nhân: nhiễu từ ô bên cạnh, và thiếu chi tiết pixel của ô đích. &
+Thí nghiệm này cần \textbf{vị trí ô do con người cung cấp}, nên chỉ chẩn đoán được nguyên nhân chứ chưa thành phương pháp dùng được. \\ \hline
+Có mốc con người (96.0 / 99.0) và mốc ngẫu nhiên (38.4 / 37.7). &
+\textbf{Không phân tích thiên lệch ngôn ngữ}: mốc ngẫu nhiên thấp hơn rất nhiều so với mức đoán được chỉ từ câu hỏi. GPT-4 judge chưa được kiểm chứng. Real-World chỉ có 100 ảnh nhưng không báo khoảng tin cậy. \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Báo cáo lần 1 của nhóm}
+\label{sec:h1}
+
+\textbf{H1: Kết quả lần 1 không đo được khả năng hiểu ảnh.} Bằng chứng dưới đây là các phép đếm và phép đo tất định trên metadata (lệnh \texttt{audit}, seed 42), không phải ước lượng.
+
+\textbf{(a) Rò rỉ dữ liệu.} 2{,}100 ảnh synthetic được sinh từ 10 khái niệm câu hỏi, 7 số ô, 6 layout và 5 biến thể, và chỉ dùng \textbf{60 ảnh con}. Mỗi khái niệm dùng lại cùng các ảnh con ở mọi layout. Nhóm tái hiện cách chia của lần 1 (\texttt{GroupShuffleSplit} theo $Q_1\parallel Q_2$, 70/15/15) và thu được 1{,}470/315/315 ảnh; lần 1 ghi 1{,}465/320/315 ảnh.
+
+\begin{table}[h!]
+\centering
+\small
+\caption{Tỉ lệ câu Test có chung thành phần với Train.}
+\label{tab:leak}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Thành phần dùng chung} & \textbf{Chia lần 1} & \textbf{Chia theo khái niệm (mới)} \\ \hline
+Cùng bộ (khái niệm, số ô, layout) & $0.0\%$ & $0.0\%$ \\
+Cùng nguyên văn câu hỏi & $25.4\%$ & $0.0\%$ \\
+Cùng khái niệm câu hỏi & $\mathbf{100.0\%}$ & $0.0\%$ \\
+Mọi ảnh con của câu đều có trong Train & $\mathbf{100.0\%}$ & $0.0\%$ \\ \hline
+\end{tabular}
+\end{table}
+
+\textbf{(b) Thiên lệch ngôn ngữ.} Ở $Q_1$ synthetic, câu chứa \emph{all} có đáp án \texttt{No} ở 1{,}180/1{,}235 câu, câu chứa \emph{any} có đáp án \texttt{Yes} ở 805/865 câu. Chỉ một luật một từ đã đúng $94.5\%$ mà không cần nhìn ảnh. Đáp án $Q_3$ là \texttt{a} ở $51.7\%$ số câu.
+
+\begin{table}[h!]
+\centering
+\small
+\caption{Mốc không nhìn ảnh so với mô hình lần 1 (\%). Question-only là TF-IDF + Logistic Regression, chỉ chọn trong các đáp án hợp lệ.}
+\label{tab:blind}
+\begin{tabular}{|l|l|c|c|c|c|c|}
+\hline
+\textbf{Tập đánh giá} & \textbf{Phương pháp} & \textbf{Overall} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Cons.} \\ \hline
+Test synthetic (chia lần 1) & Ngẫu nhiên & 40.74 & 50.00 & 50.00 & 25.00 & -- \\
+ & Majority & 62.42 & 60.32 & 74.36 & 57.14 & 20.51 \\
+ & Question-only & 88.48 & 96.83 & \textbf{100.00} & 73.02 & 71.79 \\
+ & Mô hình lần 1 & 97.09 & 100.00 & 100.00 & 92.06 & 93.04 \\ \hline
+Synthetic, khái niệm chưa thấy (5 fold) & Question-only & 78.40 & 95.48 & 64.29 & 71.19 & 46.60 \\ \hline
+Real-World & Ngẫu nhiên & 41.19 & 50.00 & 50.00 & 25.07 & -- \\
+ & Question-only & \textbf{51.24} & \textbf{73.20} & 53.49 & \textbf{28.00} & \textbf{19.28} \\
+ & Mô hình lần 1 & 47.67 & 71.13 & 55.95 & 17.35 & 10.13 \\ \hline
+\end{tabular}
+\end{table}
+
+\textbf{(c) Lỗi đo lường.} Bảng Per-Style của lần 1 in cùng giá trị $97.09\%$ (bằng Overall) cho cả 4 dạng, nên đó là lỗi của mã đo. $Q_3$ trên Real-World đạt $17.35\%$, thấp hơn mức ngẫu nhiên. 60/100 đáp án $Q_3$ thật ghi dạng \texttt{b)} và có câu có lựa chọn \texttt{e}, nên cần chuẩn hoá đáp án và che logit theo đúng tập lựa chọn của từng câu. Mã train ở lần 1 không có trong repo, nên nguyên nhân chính xác chưa kiểm chứng được.
+
+\textbf{Kết luận H1.} Phần điểm của lần 1 có thể quy cho việc nhìn ảnh chỉ khoảng $97.09 - 88.48 \approx 8.6$ điểm trên Test synthetic. Trên Real-World, mô hình lần 1 \textbf{không vượt} mốc chỉ đọc câu hỏi. Mọi so sánh từ đây trở đi dùng \textbf{chia theo khái niệm} và mốc sàn Question-only.
+
+% -----------------------------------------------------------------------
+\section{Thiết kế nghiên cứu lần 2}
+
+\subsection{Giả thuyết đăng ký trước}
+
+Giả thuyết, tập đánh giá và phép kiểm định được cố định trong \texttt{spotlightvqa/evidence.py} trước khi chạy. Prompt của Spotlight được viết một lần và \textbf{không được tinh chỉnh} trên tập đánh giá.
+
+\begin{table}[h!]
+\centering
+\small
+\caption{Các giả thuyết, phép so sánh và tiêu chí kết luận.}
+\label{tab:hyp}
+\begin{tabularx}{\textwidth}{|l|Y|Y|Y|}
+\hline
+\textbf{Mã} & \textbf{Giả thuyết} & \textbf{So sánh (cùng câu hỏi)} & \textbf{Kết luận ``đúng'' khi} \\ \hline
+H2 (chính) & Spotlight cải thiện $Q_2{+}Q_3$ so với trả lời trực tiếp, với cùng một VLM & Direct vs Spotlight, tách riêng synthetic và Real-World & $p_{\text{Holm}} < 0.05$ (McNemar) và khoảng tin cậy 95\% của $\Delta$ nằm hoàn toàn trên 0 \\ \hline
+H3 (cơ chế) & Phần lợi đến từ việc \emph{nhìn đúng ô}, không phải do prompt hay do phóng to ảnh nói chung & (a) Direct $\rightarrow$ Oracle crop $\rightarrow$ Spotlight trên $Q_2$; (b) độ chính xác khi ô khoanh trúng (IoU $\ge 0.5$) so với khi khoanh trượt & Oracle $>$ Direct có ý nghĩa, và Spotlight-trúng $>$ Spotlight-trượt \\ \hline
+H4 (huấn luyện) & Spotlight Region Alignment giúp mô hình nhỏ vượt mốc sàn trên khái niệm chưa thấy & E5 vs E2 và E5 vs Question-only (5 fold gộp); E0 vs E2 trên Test cũ để đo mức học thuộc & Như H2 \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Phương pháp Spotlight (ground-then-zoom, không huấn luyện)}
+
+Ký hiệu $P_\theta$ là VLM (Qwen2.5-VL-3B-Instruct), $G_\theta(I, d)$ là hộp mà chính VLM trả về khi được yêu cầu khoanh ``ô được mô tả bởi $d$'', và $\mathrm{crop}(I,b)$ là ảnh cắt theo hộp $b$ (thêm lề $4\%$). Mọi đáp án được chấm bằng log-xác suất của token kế tiếp trên tập $\mathcal{A}(q)$, không sinh văn bản tự do.
+\begin{itemize}
+    \item \textbf{Direct}: $\hat y = \arg\max_{y \in \mathcal{A}(q)} \log P_\theta(y \mid I, q)$.
+    \item \textbf{$Q_2$}: $\hat b = G_\theta(I, q)$, rồi $\hat y = \arg\max_{y} \log P_\theta(y \mid \mathrm{crop}(I,\hat b), q)$.
+    \item \textbf{$Q_3$}: với mỗi lựa chọn $o$ (mô tả vị trí), lấy $\hat b_o = G_\theta(I, o)$ và tính
+    \[
+      s(o) = \log P_\theta(\text{Yes} \mid \mathrm{crop}(I,\hat b_o), q) - \log P_\theta(\text{No} \mid \mathrm{crop}(I,\hat b_o), q), \qquad \hat y = \arg\max_o s(o).
+    \]
+    Một lựa chọn khó trên ảnh nhiều ô được tách thành $|\mathcal{A}(q)|$ phép kiểm tra trên từng ô riêng lẻ.
+    \item \textbf{$Q_1$} giữ câu trả lời Direct. Đây là phạm vi đã nêu từ đầu, không phải lựa chọn sau khi xem kết quả.
+    \item Khi hộp không đọc được hoặc không hợp lý (diện tích $<0.5\%$ hoặc $>90\%$ ảnh), phương pháp \textbf{quay về ảnh đầy đủ}. Spotlight vì vậy không bao giờ có ít thông tin hơn Direct.
+\end{itemize}
+\textbf{Oracle crop} dùng cùng prompt nhưng thay $\hat b$ bằng hộp đúng lấy từ metadata synthetic. Nó cho biết Spotlight đạt tối đa bao nhiêu nếu khoanh hoàn hảo, và tương ứng với thí nghiệm bỏ ô lân cận của paper.
+
+\subsection{Spotlight Region Alignment cho mô hình huấn luyện (H4)}
+
+Mô hình nền giữ như lần 1 (ViT-B/16 + RoBERTa-base, Cross-Attention với câu hỏi làm Query). Gọi $\alpha \in \Delta^{N}$ là trọng số attention của câu hỏi lên $N$ patch, $\mathcal{P}$ là các patch nằm trong ô đích:
+\[
+  \mathcal{L} = \mathcal{L}_{\text{CE}}\big(\text{logit}\odot m(q),\, y\big) + \lambda\Big(-\log\sum_{p\in\mathcal{P}}\alpha_p\Big),\qquad \lambda = 0.2,
+\]
+trong đó $m(q)$ che các logit ngoài $\mathcal{A}(q)$. Ảnh dùng độ phân giải 448, augment chỉ thay đổi màu (không lật hay crop, vì làm sai nhãn vị trí). Hạng tử Spotlight chỉ áp dụng cho $Q_2/Q_3$ của biến thể \texttt{original}, là biến thể duy nhất có toạ độ ô trong metadata.
+
+\subsection{Giao thức kiểm định}
+\begin{itemize}
+    \item \textbf{Tập đánh giá VLM} (H2, H3): toàn bộ 420 ảnh biến thể \texttt{original} (714 câu $Q_2{+}Q_3$, trong đó 294 câu $Q_2$ có hộp đúng để làm Oracle) và toàn bộ 100 ảnh Real-World (186 câu $Q_2{+}Q_3$). Không lấy mẫu con.
+    \item \textbf{Tập đánh giá huấn luyện} (H4): 5 fold chia theo khái niệm, mỗi fold có 1 khái niệm VQAv2 và 1 khái niệm MagicBrush. Dự đoán Test của 5 fold được gộp lại, nên mỗi câu synthetic (5{,}670 câu) được chấm đúng một lần bởi mô hình chưa từng thấy khái niệm của nó. Checkpoint được chọn theo Val (khái niệm của fold kế tiếp), không theo Test.
+    \item \textbf{Phép kiểm định}: các phương pháp được so trên \emph{cùng câu hỏi}, nên nhóm dùng McNemar chính xác (nhị thức hai phía trên các cặp bất đồng). Khoảng tin cậy 95\% của $\Delta$ dùng \textbf{bootstrap theo ảnh} ($B = 5{,}000$), vì 3 câu của cùng một ảnh không độc lập với nhau. H2 có 2 phép thử chính, hiệu chỉnh bằng Holm. Các kết quả theo từng $Q_2$, $Q_3$ chỉ là phụ và mang tính mô tả.
+    \item \textbf{Độ nhạy}: giả sử khoảng $25\%$ cặp câu bất đồng, hiệu ứng nhỏ nhất phát hiện được ở $\alpha=0.05$ là khoảng 4 điểm trên synthetic (714 câu) và khoảng 8 điểm trên Real-World (186 câu). Hiệu ứng nhỏ hơn mức này trên Real-World sẽ được báo cáo là \emph{chưa kết luận được}, không phải ``không có tác dụng''.
+\end{itemize}
+
+\subsection{Giới hạn của thiết kế}
+\begin{itemize}
+    \item Chỉ dùng một VLM (3B) và một bộ prompt. Kết luận chưa tổng quát cho mọi VLM.
+    \item Oracle và phép đo IoU chỉ có trên biến thể \texttt{original}. Các biến thể khác thay đổi vị trí hoặc kích thước ô và metadata không có toạ độ của chúng.
+    \item Real-World nhỏ (100 ảnh), nên khoảng tin cậy sẽ rộng.
+    \item $Q_1$ nằm ngoài phạm vi của Spotlight.
+\end{itemize}
+
+% -----------------------------------------------------------------------
+\section{Kết quả}
+\label{sec:results}
+
+\begin{table}[h!]
+\centering
+\small
+\caption{H2: Direct vs Spotlight (Qwen2.5-VL-3B), câu $Q_2{+}Q_3$. $\Delta$ = Spotlight $-$ Direct (điểm \%).}
+\label{tab:h2}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Tập} & \textbf{n câu} & \textbf{Direct} & \textbf{Spotlight} & \textbf{$\Delta$ [CI 95\%]} & \textbf{$p_{\text{Holm}}$} & \textbf{Kết luận} \\ \hline
+Synthetic (original) & 714 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Real-World & 186 & \tbd & \tbd & \tbd & \tbd & \tbd \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\caption{H3: cơ chế, trên 294 câu $Q_2$ synthetic có hộp đúng.}
+\label{tab:h3}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Chỉ số} & \textbf{Giá trị} \\ \hline
+Accuracy Direct / Spotlight / Oracle crop & \tbd{} / \tbd{} / \tbd \\
+Oracle $-$ Direct [CI 95\%], $p$ (lợi ích của việc nhìn đúng ô) & \tbd \\
+Oracle $-$ Spotlight [CI 95\%], $p$ (thiệt hại do khoanh chưa đúng) & \tbd \\
+Tỉ lệ khoanh trúng ô đích (IoU $\ge 0.5$), $Q_2{+}Q_3$ & \tbd \\
+Accuracy Spotlight khi khoanh trúng / khi khoanh trượt & \tbd{} / \tbd \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\caption{H4: mô hình huấn luyện, Test synthetic với khái niệm chưa thấy (5 fold gộp, 5{,}670 câu), trừ dòng cuối.}
+\label{tab:h4}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{So sánh} & \textbf{Acc A} & \textbf{Acc B} & \textbf{$\Delta$ [CI 95\%]} & \textbf{$p$} & \textbf{Kết luận} \\ \hline
+Question-only (A) vs E2: công thức lần 1 (B) & 78.40 & \tbd & \tbd & \tbd & \tbd \\
+Question-only (A) vs E5: Spotlight loss (B) & 78.40 & \tbd & \tbd & \tbd & \tbd \\
+E2 (A) vs E5 (B) & \tbd & \tbd & \tbd & \tbd & \tbd \\
+E0 chia cũ (A) vs E2 chia theo khái niệm (B), trên 825 câu Test cũ & \tbd & \tbd & \tbd & \tbd & mức học thuộc \\ \hline
+\end{tabular}
+\end{table}
+
+\fillin{Nhận định sau khi có số liệu. Mỗi nhận định phải trỏ tới một dòng trong Bảng~\ref{tab:h2}--\ref{tab:h4}. Hiệu ứng không đạt tiêu chí ở Bảng~\ref{tab:hyp} được ghi là chưa chứng minh.}
+
+% -----------------------------------------------------------------------
+\section{Kế hoạch tiếp theo}
+\begin{enumerate}
+    \item Chạy notebook, điền Bảng~\ref{tab:h2}--\ref{tab:h4} từ \texttt{outputs/evidence.json} và thêm hình minh hoạ các ô khoanh trúng hoặc trượt.
+    \item Nếu H2 đúng: kiểm tra trên một VLM thứ hai (ví dụ Qwen3-VL) để biết kết quả không phụ thuộc vào một mô hình. Nếu H2 sai nhưng Oracle $>$ Direct: điểm nghẽn là khả năng khoanh ô, và bước tiếp theo là cải thiện grounding.
+    \item Sinh dữ liệu huấn luyện mới từ COCO \emph{train2014} (không trùng ảnh với tập đánh giá), cân bằng đáp án theo từ khoá \emph{all/any} và theo vị trí, để toàn bộ 2{,}100 ảnh synthetic trở thành tập kiểm tra sạch.
+\end{enumerate}
+
+\noindent\textbf{Mã nguồn}: nhánh \texttt{tiendo2} của \url{https://github.com/AIVIETNAM-AIO-PhamTien/SpotLightVQA}. Lệnh \texttt{audit} tái tạo Mục~\ref{sec:h1}; notebook \texttt{notebooks/colab\_tiendo2.ipynb} chạy H2--H4; lệnh \texttt{evidence} sinh các bảng kiểm định.
+
+\end{document}

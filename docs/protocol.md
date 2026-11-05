@@ -11,7 +11,7 @@
 
 ## Chuẩn bị benchmark cho người chạy baseline
 
-Dữ liệu lớn không tải tự động. Tải từ hai nguồn Hugging Face theo README upstream (cần Git LFS nếu clone), lưu vào `data/raw/`. Kiểm tra cấu trúc tải về để xác định JSON annotations và thư mục chứa ảnh; không giả định tên file. Lệnh `prepare` nhận định dạng upstream: một JSON list; mỗi record có `composited_gallery` và `qa` là list các cặp `question`/`answer` chuỗi.
+Dữ liệu lớn không tải tự động. Tải từ hai nguồn Hugging Face theo README upstream (cần Git LFS nếu clone), lưu vào `data/raw/`. Kiểm tra cấu trúc tải về để xác định JSON annotations và thư mục chứa ảnh; không giả định tên file. Lệnh `prepare` nhận hai định dạng: `test/metadata.jsonl` của bản phát hành HF (mỗi dòng một ảnh với `question_1..3`/`answer_1..3`, có `synthetic_style` ở subset synthetic), hoặc JSON list upstream với `composited_gallery` và `qa`.
 
 Ví dụ dưới đây dùng đường dẫn minh họa, cần thay bằng file thực tế:
 
@@ -35,7 +35,7 @@ Adapter model do người chạy baseline cung cấp, ví dụ `my_model.py` có
 .\.venv\Scripts\python.exe -m spotlightvqa.cli evaluate --data data/processed/synthetic.jsonl --predictions outputs/predictions-synthetic.jsonl --model "MODEL_ID@REVISION" --seed 42 --protocol "Ghi prompt wrapper; preprocessing; decoding; GPU; adapter revision ở đây"
 ```
 
-Prediction JSONL: `{"question_id":"...","prediction":"..."}`. Chấm điểm từ chối ID trùng, thiếu hoặc thừa để tránh vô tình báo điểm trên tập dự đoán chưa đầy đủ. Khi infer lỗi, lệnh dừng, không ghi file dự đoán thiếu. Chưa có resume/batching cho job GPU lớn.
+Prediction JSONL: `{"question_id":"...","prediction":"..."}`. Chấm điểm từ chối ID trùng, thiếu hoặc thừa để tránh vô tình báo điểm trên tập dự đoán chưa đầy đủ. `infer` ghi từng dự đoán ngay khi có; khi lỗi, file có thể thiếu câu nhưng `evaluate` sẽ từ chối chấm. Chạy lại với `--resume` để tiếp tục từ câu chưa có. Chưa có batching.
 
 ## Metric
 
