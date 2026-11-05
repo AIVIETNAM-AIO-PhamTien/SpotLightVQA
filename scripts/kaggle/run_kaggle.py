@@ -101,12 +101,28 @@ def worker(gpu, tasks, status, lock):
         log.parent.mkdir(parents=True, exist_ok=True)
         env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu))
         begin = time.time()
-        with log.open("a", encoding="utf-8") as stream:
-            code = subprocess.run(cmd, cwd=CODE, env=env, stdout=stream, stderr=subprocess.STDOUT).returncode
+        for attempt in range(3):
+            with log.open("a", encoding="utf-8") as stream:
+                code = subprocess.run(cmd, cwd=CODE, env=env, stdout=stream, stderr=subprocess.STDOUT).returncode
+            tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-25:]
+            oom = any("OutOfMemory" in line or "out of memory" in line for line in tail)
+            if code == 0 or not oom or "--batch-size" not in cmd:
+                break
+            # Same effective batch with half the memory: batch / 2, accumulation x 2.
+            i = cmd.index("--batch-size")
+            cmd[i + 1] = str(max(1, int(cmd[i + 1]) // 2))
+            if "--grad-accum" in cmd:
+                j = cmd.index("--grad-accum")
+                cmd[j + 1] = str(int(cmd[j + 1]) * 2)
+            else:
+                cmd += ["--grad-accum", "2"]
+            print(name, "OOM -> retry with", cmd[i + 1], "per step", flush=True)
         Path(folder, "best.pt").unlink(missing_ok=True)   # 0.9 GB checkpoints are not needed afterwards
         with lock:
             status[name] = {"state": "ok" if code == 0 else f"failed ({code})", "gpu": gpu,
                             "minutes": round((time.time() - begin) / 60, 1)}
+            if code != 0:
+                status[name]["error_tail"] = tail[-8:]
             (OUT / "status.json").write_text(json.dumps(status, indent=2))
         print(name, status[name], flush=True)
 
